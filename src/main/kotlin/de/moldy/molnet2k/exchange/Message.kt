@@ -9,7 +9,7 @@ import kotlin.reflect.KClass
 
 class Message(private val messageExchangerManager: MessageExchangerManager) {
 
-    internal var trafficID = ""
+    internal var trafficID = -1
 
     internal lateinit var ctx: ChannelHandlerContext
 
@@ -31,18 +31,16 @@ class Message(private val messageExchangerManager: MessageExchangerManager) {
         this.send[name] = bytes
     }
 
-    fun send() {
-        val byteBuf = this.ctx.alloc().buffer()
-
-        val intId = this.messageExchangerManager.getIntIdFromTrafficId(this.trafficID) ?: throw RuntimeException("traffic id int not found")
-        byteBuf.writeInt(intId)
+    fun toBytes(byteBuf: ByteBuf): ByteBuf {
+//        val intId = this.messageExchangerManager.getIntIdFromTrafficId(this.trafficID) ?: throw RuntimeException("traffic id int not found")
+        byteBuf.writeInt(this.trafficID)
 
         this.send.forEach { (valueName, valueByteArray) ->
             ByteBufferUtils.writeUTF8String(byteBuf, valueName)
             byteBuf.writeInt(valueByteArray.size)
             byteBuf.writeBytes(valueByteArray)
         }
-        this.ctx.channel().writeAndFlush(byteBuf)
+        return byteBuf
     }
 
     internal fun receive(byteBuf: ByteBuf) {
