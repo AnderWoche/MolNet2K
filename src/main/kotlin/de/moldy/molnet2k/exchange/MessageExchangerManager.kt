@@ -63,4 +63,8 @@ open class MessageExchangerManager {
         return rightBits
     }
 
+    fun <T : Any> getMessageExchanger(exchangerClass: KClass<out T>): T? {
+        return this.messageExchangerMap[exchangerClass] as T?
+    }
+
 }

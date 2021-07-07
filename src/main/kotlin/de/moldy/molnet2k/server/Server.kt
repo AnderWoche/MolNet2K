@@ -3,6 +3,7 @@ package de.moldy.molnet2k.server
 import de.moldy.molnet2k.MessageDecoder
 import de.moldy.molnet2k.MessageHandler
 import de.moldy.molnet2k.exchange.NetworkInterface
+import de.moldy.molnet2k.exchange.file.FileProviderExchanger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.*
 import io.netty.channel.group.DefaultChannelGroup
@@ -10,6 +11,8 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.util.concurrent.GlobalEventExecutor
+import java.nio.file.Path
+import java.util.*
 
 open class Server(private var port: Int) : NetworkInterface() {
 
@@ -42,6 +45,8 @@ open class Server(private var port: Int) : NetworkInterface() {
         })
         this.serverBootstrap.option(ChannelOption.SO_BACKLOG, 128)
         this.serverBootstrap.childOption(ChannelOption.SO_KEEPALIVE, true)
+
+        this.loadMessageExchanger(FileProviderExchanger())
     }
 
     /**
@@ -56,6 +61,11 @@ open class Server(private var port: Int) : NetworkInterface() {
 
     fun bind(): ChannelFuture {
         return serverBootstrap.bind(port)
+    }
+
+    fun provideFile(name: String, path: Path) {
+        val exchanger = this.messageHandler.exchangerManager.getMessageExchanger(FileProviderExchanger::class)
+        exchanger!!.provide(name, path)
     }
 
 }

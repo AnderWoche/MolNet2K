@@ -16,16 +16,12 @@ fun main() {
     val server = Server(3458)
     server.loadMessageExchanger(ServerMessageExchanger())
 
-    val fileProvider = FileProviderExchanger()
-    fileProvider.provide("test", Paths.get("C:\\Users\\david\\Desktop\\test.txt"))
-    server.loadMessageExchanger(fileProvider)
+    server.provideFile("test", Paths.get("C:\\Users\\david\\Desktop\\test.txt"))
 
     server.bind()
 
 
     val client = Client("localhost", 3458)
-    val fileProviderReaderExchanger = FileProviderReaderExchanger()
-    client.loadMessageExchanger(fileProviderReaderExchanger)
 
     client.loadMessageExchanger(object : MessageExchangerManager() {
         @TrafficID("testClient")
@@ -39,17 +35,15 @@ fun main() {
         if (it.isDone) {
             println("channel connected!")
 
-            fileProviderReaderExchanger.requestFile(
-                client,
-                client.getChannel(),
-                "test",
-                Paths.get("C:\\Users\\david\\Desktop\\lol123")
-            ).addListener(object : FileDownloadListener {
+            client.readFile("test", Paths.get("C:\\Users\\david\\Desktop\\lol123"))
+                .addListener(object : FileDownloadListener {
                 override fun newFile(file: File) {
                     println("new file: $file")
                 }
+
                 override fun bytesReceived(currentSize: Long, totalSize: Long) {
                 }
+
                 override fun done(fileDownloadFuture: FileDownloadFuture) {
                     println("new File: ${fileDownloadFuture.isSuccess}")
                 }
