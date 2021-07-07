@@ -8,6 +8,15 @@ import de.moldy.molnet2k.utils.IDFactory
  */
 class RightIDFactory(identity: Boolean) : IDFactory<String>(identity) {
 
+    fun addRightBit(bitVector: BitVector, vararg right: String): BitVector {
+        for(s in right) {
+            val stringRight = s.lowercase()
+            val id = super.getOrCreateID(stringRight)
+            bitVector.set(id)
+        }
+        return bitVector
+    }
+
     fun addRightBits(bitVector: BitVector, rights: Array<String>): BitVector {
         for(s in rights) {
             val stringRight = s.lowercase()

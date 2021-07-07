@@ -2,59 +2,47 @@ package de.moldy.molnet2k
 
 import de.moldy.molnet2k.exchange.Message
 import de.moldy.molnet2k.exchange.MessageExchangerManager
-import de.moldy.molnet2k.exchange.RightIDFactory
-import de.moldy.molnet2k.utils.ByteBufferUtils
-import de.moldy.molnet2k.utils.IDFactory
-import io.netty.buffer.ByteBuf
-import io.netty.channel.ChannelHandler
+import de.moldy.molnet2k.exchange.MolNetMethodHandle
+import de.moldy.molnet2k.exchange.file.FilePacket
+import de.moldy.molnet2k.utils.BitVector
+import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 
-@ChannelHandler.Sharable
-class MessageHandler : SimpleChannelInboundHandler<ByteBuf>() {
+abstract class MessageHandler : SimpleChannelInboundHandler<Message>() {
 
-    private val messageExchangerManager = MessageExchangerManager(RightIDFactory(false))
+    internal val exchangerManager = MessageExchangerManager()
 
-    private val stringToIntID = IDFactory<String>(false)
+    val noAccessListener = ArrayList<(ctx: ChannelHandlerContext, handle: MolNetMethodHandle<*>, channelBits: BitVector?, msg: Message) -> Unit>()
 
-    init {
-        val setIDString = "messageHandler.set.method.id"
-        val id = this.stringToIntID.getOrCreateID(setIDString)
-        this.messageExchangerManager.associateTrafficIDWithInt(id, setIDString)
-    }
-
-    override fun channelRead0(ctx: ChannelHandlerContext, msg: ByteBuf) {
-        val intTrafficID = msg.readInt()
-        val handle = this.messageExchangerManager.getMethodHandle(intTrafficID)
+    override fun channelRead0(ctx: ChannelHandlerContext, msg: Message) {
+        val handle = this.exchangerManager.getMethodHandle(msg.trafficID)
         if (handle != null) {
-
+            if(handle.isRightRestricted()) {
+                val rightBits = this.getRightBitsFromChannel(ctx.channel())
+                if(handle.hasAccess(rightBits)) {
+                    handle.invokeIgnoreRights(msg)
+                } else {
+                    this.noAccessListener.forEach {
+                        it(ctx, handle, rightBits, msg)
+                    }
+                }
+            }
+            handle.invokeIgnoreRights(msg)
+        } else {
+            println("[MESSAGE HANDLER] the ${msg.trafficID} has not a method")
         }
-
-        val trafficIDString = ByteBufferUtils.readUTF8String(msg)
-        this.messageExchangerManager.getMethodHandle(trafficIDString)
-        this.messageExchangerManager.associateTrafficIDWithInt(
-            this.stringToIntID.getOrCreateID(trafficIDString), trafficIDString
-        )
     }
+
+    abstract fun getRightBitsFromChannel(channel: Channel): BitVector?
 
     override fun channelActive(ctx: ChannelHandlerContext) {
-        for(entry in this.messageExchangerManager.intIdToStringIdMap) {
-            val message = this.obtainMessage(ctx, "messageHandler.set.method.id")
-            message.setVar("trafficID", entry.value)
-            message.setVar("id", entry.key)
-        }
         super.channelActive(ctx)
     }
 
-    fun obtainMessage(ctx: ChannelHandlerContext, trafficID: String): Message {
-        val message = Message(this.messageExchangerManager)
-        message.ctx = ctx
-        message.trafficID = trafficID
-        return message
-    }
-
-    fun sendMessage(message: Message) {
-
+    override fun exceptionCaught(ctx: ChannelHandlerContext?, cause: Throwable?) {
+        cause?.printStackTrace()
+        super.exceptionCaught(ctx, cause)
     }
 
 

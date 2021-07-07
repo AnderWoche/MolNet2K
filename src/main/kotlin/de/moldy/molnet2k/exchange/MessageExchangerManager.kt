@@ -8,13 +8,12 @@ import de.moldy.molnet2k.utils.BitVector
 import java.lang.reflect.Method
 import kotlin.reflect.KClass
 
-class MessageExchangerManager(private val rightIDFactory: RightIDFactory) {
+open class MessageExchangerManager {
+
+    private val rightIDFactory = RightIDFactory(false)
 
     private val messageExchangerMap = HashMap<KClass<out Any>, Any>()
-    private val exchangerIdMapString = HashMap<String, MolNetMethodHandle>()
-    private val exchangerIdMapInteger = HashMap<Int, MolNetMethodHandle>()
-    val intIdToStringIdMap = HashMap<Int, String>()
-    private val stringIdToIntIdMap = HashMap<String, Int>()
+    private val exchangerIdMap = HashMap<String, MolNetMethodHandle<*>>()
 
     fun loadServerMessageExchanger(any: Any) {
         this.loadMessageExchanger(any, ClientOnly::class.java)
@@ -34,38 +33,19 @@ class MessageExchangerManager(private val rightIDFactory: RightIDFactory) {
             .filter()
 
         for(method in methods) {
-            val trafficIDString = method.getAnnotation(TrafficID::class.java).id
+            val trafficID = method.getAnnotation(TrafficID::class.java).id
 
-            val methodHandle = MolNetMethodHandle(any, method, MethodID(trafficIDString), this.getRightsFromMethod(any, method))
+            val methodHandle = MolNetMethodHandle(any, method, trafficID, this.getRightsFromMethod(any, method))
 
-            this.exchangerIdMapString[trafficIDString] = methodHandle
+            this.exchangerIdMap[trafficID] = methodHandle
         }
 
 //        val onRun = AnnotationMethodFilter(methods).all(RunOnChannelConnect::class.java).filter()
 
     }
 
-    fun getMethodHandle(id: String): MolNetMethodHandle? {
-        return this.exchangerIdMapString[id]
-    }
-
-    fun getMethodHandle(id: Int): MolNetMethodHandle? {
-        return this.exchangerIdMapInteger[id]
-    }
-
-    fun getIntIdFromTrafficId(trafficID: String): Int? {
-        return this.stringIdToIntIdMap[trafficID]
-    }
-
-    fun getTrafficIdFromIntId(intId: Int): String? {
-        return this.intIdToStringIdMap[intId]
-    }
-
-    fun associateTrafficIDWithInt(id: Int, trafficID: String) {
-        this.intIdToStringIdMap[id] = trafficID
-        this.stringIdToIntIdMap[trafficID] = id
-        val methodHandle = this.exchangerIdMapString[trafficID]
-        if(methodHandle != null) this.exchangerIdMapInteger[id] = methodHandle
+    fun getMethodHandle(id: String): MolNetMethodHandle<*>? {
+        return this.exchangerIdMap[id]
     }
 
     private fun getRightsFromMethod(any: Any, method: Method): BitVector? {

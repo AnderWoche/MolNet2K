@@ -66,6 +66,22 @@ class ByteBufferUtils {
             return buffer.getShort()
         }
 
+        fun Float.bytes(): ByteArray {
+            val buffer = byteBufferPool4.obtain()
+            buffer.rewind()
+            buffer.putFloat(this)
+            buffer.rewind()
+            return buffer.array()
+        }
+
+        fun ByteArray.toFloat(): Float {
+            val buffer = byteBufferPool4.obtain()
+            buffer.rewind()
+            buffer.put(this)
+            buffer.rewind()
+            return buffer.getFloat()
+        }
+
         fun Int.bytes(): ByteArray {
             val buffer = byteBufferPool4.obtain()
             buffer.rewind()

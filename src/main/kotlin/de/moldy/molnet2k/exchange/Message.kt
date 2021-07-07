@@ -1,26 +1,24 @@
 package de.moldy.molnet2k.exchange
 
-import de.moldy.molnet2k.utils.ByteBufferUtils
 import de.moldy.molnet2k.utils.serializer.ByteObjectSerializer
-import io.netty.buffer.ByteBuf
-import io.netty.channel.ChannelHandlerContext
-import java.lang.RuntimeException
+import io.netty.channel.Channel
 import kotlin.reflect.KClass
 
-class Message(private val messageExchangerManager: MessageExchangerManager) {
+class Message {
 
-    internal var trafficID = -1
+    internal var trafficID = ""
 
-    internal lateinit var ctx: ChannelHandlerContext
+    internal lateinit var sender: Channel
 
     internal val received = HashMap<String, ByteArray>()
     internal val send = HashMap<String, ByteArray>()
 
-    fun getSender(): ChannelHandlerContext {
-        return this.ctx
+    fun getSender(): Channel {
+        return this.sender
     }
 
     fun <T : Any> getVar(name: String, type: KClass<T>): T {
+        name.hashCode()
         val bytes = this.received[name]
         requireNotNull(bytes) {"var for name: $name doesn't exits"}
         return ByteObjectSerializer.byteObjectSerializer.deSerialize(type, bytes)
@@ -31,24 +29,13 @@ class Message(private val messageExchangerManager: MessageExchangerManager) {
         this.send[name] = bytes
     }
 
-    fun toBytes(byteBuf: ByteBuf): ByteBuf {
-//        val intId = this.messageExchangerManager.getIntIdFromTrafficId(this.trafficID) ?: throw RuntimeException("traffic id int not found")
-        byteBuf.writeInt(this.trafficID)
-
-        this.send.forEach { (valueName, valueByteArray) ->
-            ByteBufferUtils.writeUTF8String(byteBuf, valueName)
-            byteBuf.writeInt(valueByteArray.size)
-            byteBuf.writeBytes(valueByteArray)
-        }
-        return byteBuf
+    fun send() {
+        this.sender.writeAndFlush(this)
     }
 
-    internal fun receive(byteBuf: ByteBuf) {
-        while(byteBuf.readableBytes() > 0) {
-            val valueName = ByteBufferUtils.readUTF8String(byteBuf)
-            val bytes = ByteArray(byteBuf.readInt())
-            byteBuf.readBytes(bytes)
-            this.received[valueName] = bytes
-        }
+    fun send(trafficID: String) {
+        this.trafficID = trafficID
+        this.send()
     }
+
 }
