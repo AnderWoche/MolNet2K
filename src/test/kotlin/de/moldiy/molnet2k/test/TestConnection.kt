@@ -4,19 +4,13 @@ import de.moldy.molnet2k.client.Client
 import de.moldy.molnet2k.exchange.Message
 import de.moldy.molnet2k.exchange.MessageExchangerManager
 import de.moldy.molnet2k.exchange.annotations.TrafficID
-import de.moldy.molnet2k.exchange.file.FileDownloadFuture
-import de.moldy.molnet2k.exchange.file.FileDownloadListener
-import de.moldy.molnet2k.exchange.file.FileProviderExchanger
-import de.moldy.molnet2k.exchange.file.FileProviderReaderExchanger
 import de.moldy.molnet2k.server.Server
-import java.io.File
-import java.nio.file.Paths
 
 fun main() {
     val server = Server(3458)
     server.loadMessageExchanger(ServerMessageExchanger())
 
-    server.provideFile("test", Paths.get("C:\\Users\\david\\Desktop\\test.txt"))
+//    server.provideFile("test", Paths.get("C:\\Users\\david\\Desktop\\test.txt"))
 
     server.bind()
 
@@ -26,7 +20,7 @@ fun main() {
     client.loadMessageExchanger(object : MessageExchangerManager() {
         @TrafficID("testClient")
         fun a(message: Message) {
-            println("antwoet ist da")
+            println("antwoet ist da: ${message.getVar("test", String::class)}")
         }
     })
 
@@ -35,20 +29,20 @@ fun main() {
         if (it.isDone) {
             println("channel connected!")
 
-            client.readFile("test", Paths.get("C:\\Users\\david\\Desktop\\lol123"))
-                .addListener(object : FileDownloadListener {
-                override fun newFile(file: File) {
-                    println("new file: $file")
-                }
-
-                override fun bytesReceived(currentSize: Long, totalSize: Long) {
-                }
-
-                override fun done(fileDownloadFuture: FileDownloadFuture) {
-                    println("new File: ${fileDownloadFuture.isSuccess}")
-                }
-
-            })
+//            client.requestFile("test", Paths.get("C:\\Users\\david\\Desktop\\lol123"))
+//                .addListener(object : FileDownloadListener {
+//                override fun newFile(file: File) {
+//                    println("new file: $file")
+//                }
+//
+//                override fun bytesReceived(currentSize: Long, totalSize: Long) {
+//                }
+//
+//                override fun done(fileDownloadFuture: FileDownloadFuture) {
+//                    println("new File: ${fileDownloadFuture.isSuccess}")
+//                }
+//
+//            })
 
             val fistMessage = client.createMessage("test")
             fistMessage.setVar("cool", 2345)

@@ -9,10 +9,12 @@ class ServerMessageExchanger {
     @Rights(["test", "rights"])
     @TrafficID("test")
     fun test(message: Message) {
+//        val name = message.getVar("name", String::class)
 
-        val m = Message()
-        m.sender = message.sender
-        m.send("testClient")
+        message.setVar("retr", 23).send("sdf")
+
+        message.setVar("test", "lol das ist ein string")
+        message.send("testClient")
 
 //        println("[SERVER] server has received test call from client")
     }

@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.util.*
 
 class FilePacket(path: Path) {
+
     private val files: MutableList<File> = ArrayList()
     private val unmodifiableFiles = Collections.unmodifiableList(files)
     private val relativeFilePath: MutableList<String> = ArrayList()

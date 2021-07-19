@@ -13,24 +13,28 @@ abstract class MessageHandler : SimpleChannelInboundHandler<Message>() {
 
     internal val exchangerManager = MessageExchangerManager()
 
-    val noAccessListener = ArrayList<(ctx: ChannelHandlerContext, handle: MolNetMethodHandle<*>, channelBits: BitVector?, msg: Message) -> Unit>()
+    val noAccessListener =
+        ArrayList<(ctx: ChannelHandlerContext, handle: MolNetMethodHandle<*>, channelBits: BitVector?, msg: Message) -> Unit>()
 
     override fun channelRead0(ctx: ChannelHandlerContext, msg: Message) {
         val handle = this.exchangerManager.getMethodHandle(msg.trafficID)
-        if (handle != null) {
-            if(handle.isRightRestricted()) {
-                val rightBits = this.getRightBitsFromChannel(ctx.channel())
-                if(handle.hasAccess(rightBits)) {
-                    handle.invokeIgnoreRights(msg)
-                } else {
-                    this.noAccessListener.forEach {
-                        it(ctx, handle, rightBits, msg)
-                    }
+
+        if (handle == null) {
+            println("[MESSAGE HANDLER] the <${msg.trafficID}> TrafficID has not a method")
+            return
+        }
+
+        if (handle.isRightRestricted()) {
+            val rightBits = this.getRightBitsFromChannel(ctx.channel())
+            if (handle.hasAccess(rightBits)) {
+                handle.invokeIgnoreRights(msg)
+            } else {
+                this.noAccessListener.forEach {
+                    it(ctx, handle, rightBits, msg)
                 }
             }
-            handle.invokeIgnoreRights(msg)
         } else {
-            println("[MESSAGE HANDLER] the ${msg.trafficID} has not a method")
+            handle.invokeIgnoreRights(msg)
         }
     }
 

@@ -15,7 +15,7 @@ class FileProviderExchanger {
     private val providedFiles = HashMap<String, FilePacket>()
 
     fun provide(name: String, path: Path) {
-        providedFiles[name] = FilePacket(path)
+        this.providedFiles[name] = FilePacket(path)
     }
 
     //    @Threaded

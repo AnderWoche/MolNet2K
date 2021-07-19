@@ -53,7 +53,7 @@ open class Client(private var host: String, private var port: Int) : NetworkInte
         return super.createMessage(this.channel, trafficID)
     }
 
-    fun readFile(name: String, path: Path): FileDownloadProcessor {
+    fun requestFile(name: String, path: Path): FileDownloadProcessor {
         val exchanger =
             super.messageHandler.exchangerManager.getMessageExchanger(FileProviderReaderExchanger::class)
         return exchanger!!.requestFile(this, this.channel, name, path)

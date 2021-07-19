@@ -20,13 +20,14 @@ class Message {
     fun <T : Any> getVar(name: String, type: KClass<T>): T {
         name.hashCode()
         val bytes = this.received[name]
-        requireNotNull(bytes) {"var for name: $name doesn't exits"}
+        requireNotNull(bytes) {"var for name: <$name> doesn't exits"}
         return ByteObjectSerializer.byteObjectSerializer.deSerialize(type, bytes)
     }
 
-    fun setVar(name: String, any: Any) {
+    fun setVar(name: String, any: Any): Message {
         val bytes = ByteObjectSerializer.byteObjectSerializer.serialize(any)
         this.send[name] = bytes
+        return this
     }
 
     fun send() {
