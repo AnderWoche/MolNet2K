@@ -1,36 +1,41 @@
 package de.moldy.molnet2k.client
 
-import de.moldy.molnet2k.exchange.Message
+import de.moldy.molnet2k.MessageService
 import de.moldy.molnet2k.utils.ByteBufferUtils
+import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.readLengthAndString
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder
-import io.netty.handler.codec.ReplayingDecoder
 
-class ClientMessageDecoder(private val translator: ClientMessageTranslator) : ByteToMessageDecoder() {
+class ClientMessageDecoder(private val translator: ClientMessageTranslator, private val messageService: MessageService) : ByteToMessageDecoder() {
 
     override fun decode(ctx: ChannelHandlerContext, inBytes: ByteBuf, out: MutableList<Any>) {
 
         val trafficIDInt = inBytes.readInt()
 
         if(trafficIDInt == 0) {
-            val string = ByteBufferUtils.readUTF8String(inBytes)
+            val string = inBytes.readLengthAndString().toString()
+//            val string = ByteBufferUtils.readUTF8String(inBytes)
             val id = inBytes.readInt()
             this.translator.put(string, id)
             return
         }
 
-        val message = Message()
-        message.sender = ctx.channel()
-        message.trafficID = this.translator.getKey(trafficIDInt) as String
+        val sender = ctx.channel()
+        val trafficID = this.translator.getKey(trafficIDInt) as String
+
+        val message = this.messageService.getMessage(sender, trafficID)
 
         while (inBytes.readableBytes() > 0) {
             val valueName = this.translator.getKey(inBytes.readInt()) as String
-            val bytes = ByteArray(inBytes.readInt())
-            inBytes.readBytes(bytes)
+            val bytes = inBytes.readBytes(inBytes.readInt())
             message.received[valueName] = bytes
         }
 
-        out.add(message)
+        if(message.isUsed) {
+            message.continueProcess()
+        } else {
+            out.add(message)
+        }
     }
 }

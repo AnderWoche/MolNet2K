@@ -1,7 +1,6 @@
 package de.moldy.molnet2k.server
 
-import de.moldy.molnet2k.MessageDecoder
-import de.moldy.molnet2k.MessageHandler
+import de.moldy.molnet2k.RequiredMessageDecoder
 import de.moldy.molnet2k.exchange.NetworkInterface
 import de.moldy.molnet2k.exchange.file.FileProviderExchanger
 import io.netty.bootstrap.ServerBootstrap
@@ -12,7 +11,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.util.concurrent.GlobalEventExecutor
 import java.nio.file.Path
-import java.util.*
 
 open class Server(private var port: Int) : NetworkInterface() {
 
@@ -31,8 +29,8 @@ open class Server(private var port: Int) : NetworkInterface() {
         this.serverBootstrap.childHandler(object : ChannelInitializer<NioSocketChannel>() {
             override fun initChannel(ch: NioSocketChannel) {
                 val translator = ServerMessageTranslator()
-                ch.pipeline().addFirst("defaultDecoder", MessageDecoder())
-                ch.pipeline().addLast("decoder", ServerMessageDecoder(translator))
+                ch.pipeline().addFirst("defaultDecoder", RequiredMessageDecoder())
+                ch.pipeline().addLast("decoder", ServerMessageDecoder(translator, messageService))
                 ch.pipeline().addLast("encoder", ServerMessageEncoder(translator))
                 ch.pipeline().addLast("handler", messageHandler)
                 allClients.add(ch)

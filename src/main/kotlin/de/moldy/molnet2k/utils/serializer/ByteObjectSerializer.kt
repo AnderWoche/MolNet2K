@@ -1,13 +1,11 @@
 package de.moldy.molnet2k.utils.serializer
 
 import de.moldy.molnet2k.utils.ByteBufferUtils
-import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.bytes
-import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.toFloat
+import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.toLengthAndStringByteBuf
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufAllocator
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.nio.ByteBuffer
 
 class ByteObjectSerializer : ObjectSerializer() {
 
@@ -17,52 +15,51 @@ class ByteObjectSerializer : ObjectSerializer() {
 
     init {
         super.loadPattern(Short::class, {
-            it.bytes()
+            it.toLengthAndStringByteBuf()
         }, {
-            ByteBufferUtils.byteToShort(it)
+            it.readShort()
         })
 
-        super.loadPattern(Float::class, { it.bytes() }, { it.toFloat() })
+        super.loadPattern(Float::class, { it.toLengthAndStringByteBuf() }, { it.readFloat() })
 
         super.loadPattern(Int::class, {
-            it.bytes()
+            it.toLengthAndStringByteBuf()
         }, {
-            ByteBufferUtils.byteToInt(it)
+            it.readInt()
         })
 
         super.loadPattern(Long::class, {
-            it.bytes()
+            it.toLengthAndStringByteBuf()
         }, {
-            ByteBufferUtils.byteToLong(it)
+            it.readLong()
         })
 
         super.loadPattern(String::class, {
-            it.toByteArray()
+            val byteBuf = ByteBufAllocator.DEFAULT.buffer(it.length)
+            byteBuf.writeCharSequence(it, ByteBufferUtils.UTF8Charset)
+            byteBuf
         }, {
-            String(it)
+            val charSequence = it.readCharSequence(it.readableBytes(), ByteBufferUtils.UTF8Charset)
+            it.release()
+            charSequence as String
         })
 
         super.loadPattern(BigInteger::class, {
-            it.toByteArray()
+            val byteBuf = ByteBufAllocator.DEFAULT.buffer()
+            byteBuf.writeBytes(it.toByteArray())
         }, {
-            BigInteger(it)
+            BigInteger(it.array())
         })
 
         super.loadPattern(BigDecimal::class, {
-            it.unscaledValue().toByteArray()
+            val byteBuf = ByteBufAllocator.DEFAULT.buffer()
+            byteBuf.writeBytes(it.unscaledValue().toByteArray())
         }, {
-            BigDecimal(BigInteger(it), 0)
+            BigDecimal(BigInteger(it.array()), 0)
         })
 
-        super.loadPattern(ByteBuf::class, {
-            it.release()
-            it.array()
-        }, {
-            ByteBufAllocator.DEFAULT.buffer().writeBytes(it)
-        })
-
-        super.loadPattern(ByteArray::class, { it }, { it })
-
+        super.loadPattern(ByteBuf::class, { it }, { it })
+//        super.loadPattern(ByteArray::class, { it }, { it })
     }
 
 }

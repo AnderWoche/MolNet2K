@@ -1,22 +1,19 @@
 package de.moldy.molnet2k.server
 
-import de.moldy.molnet2k.exchange.Message
+import de.moldy.molnet2k.MessageService
 import de.moldy.molnet2k.utils.ByteBufferUtils
+import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.readLengthAndString
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder
-import io.netty.handler.codec.ReplayingDecoder
 
-class ServerMessageDecoder(private val translator: ServerMessageTranslator) : ByteToMessageDecoder() {
+class ServerMessageDecoder(private val translator: ServerMessageTranslator, private val messageService: MessageService) : ByteToMessageDecoder() {
 
     override fun decode(ctx: ChannelHandlerContext, inBytes: ByteBuf, out: MutableList<Any>) {
-
-        val message = Message()
-        message.sender = ctx.channel()
-
         val isString = inBytes.readByte() == 0.toByte()
         val trafficID: String = if (isString) {
-            val trafficIDString = ByteBufferUtils.readUTF8String(inBytes)
+//            val trafficIDString = ByteBufferUtils.readUTF8String(inBytes)
+            val trafficIDString = inBytes.readLengthAndString().toString()
             val buffer = ctx.alloc().buffer()
             this.translator.getIntFromString(trafficIDString, buffer)
             ctx.writeAndFlush(buffer)
@@ -26,9 +23,12 @@ class ServerMessageDecoder(private val translator: ServerMessageTranslator) : By
             this.translator.getValueFromID(trafficIDInt) as String
         }
 
+        val message = this.messageService.getMessage(ctx.channel(), trafficID)
+
         while (inBytes.readableBytes() > 0) {
             val valueName = if (inBytes.readByte() == 0.toByte()) {
-                val valueNameString = ByteBufferUtils.readUTF8String(inBytes)
+//                val valueNameString = ByteBufferUtils.readUTF8String(inBytes)
+                val valueNameString = inBytes.readLengthAndString().toString()
                 val buffer = ctx.alloc().buffer()
                 this.translator.getIntFromString(valueNameString, buffer)
                 ctx.writeAndFlush(buffer)
@@ -37,13 +37,17 @@ class ServerMessageDecoder(private val translator: ServerMessageTranslator) : By
                 val valueNameInt = inBytes.readInt()
                 this.translator.getValueFromID(valueNameInt) as String
             }
-            val bytes = ByteArray(inBytes.readInt())
-            inBytes.readBytes(bytes)
+            val bytes = inBytes.readBytes(inBytes.readInt())
             message.received[valueName] = bytes
         }
-        message.trafficID = trafficID
 
-        out.add(message)
+        if(message.isUsed) {
+            println("isUSed! object: $message")
+            message.continueProcess()
+        } else {
+            println("is not used!")
+            out.add(message)
+        }
     }
 
 }

@@ -2,6 +2,7 @@ package de.moldy.molnet2k.exchange
 
 import de.moldy.molnet2k.ChannelIdentifierManager
 import de.moldy.molnet2k.MessageHandler
+import de.moldy.molnet2k.PooledMessageService
 import de.moldy.molnet2k.client.Client
 import de.moldy.molnet2k.utils.BitVector
 import io.netty.channel.Channel
@@ -9,6 +10,8 @@ import io.netty.channel.Channel
 open class NetworkInterface {
 
     val rightIDFactory = RightIDFactory(false)
+
+    val messageService = PooledMessageService()
 
     val channelIdentifierManager = ChannelIdentifierManager()
 
@@ -23,16 +26,13 @@ open class NetworkInterface {
     }
 
     fun createMessage(channel: Channel, trafficID: String): Message {
-        val message = Message()
-        message.trafficID = trafficID
-        message.sender = channel
-        return message
+        return this.messageService.getMessage(channel, trafficID)
     }
 
     fun createMessage(identifierName: String, value: Any, trafficID: String): Message {
         val channel = channelIdentifierManager.getChannel(identifierName, value)
         requireNotNull(channel) {"no channel has this identifier <$identifierName> <$value>"}
-        return this.createMessage(channel, trafficID)
+        return this.messageService.getMessage(channel, trafficID)
     }
 
     fun loadMessageExchanger(any: Any) {

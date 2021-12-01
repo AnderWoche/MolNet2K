@@ -16,10 +16,10 @@ class ServerMessageEncoder(private val translator: ServerMessageTranslator) : Me
         val trafficIDInt = this.translator.getIntFromString(msg.trafficID, out)
         buffer.writeInt(trafficIDInt)
 
-        msg.send.forEach { (valueName, valueByteArray) ->
+        msg.send.forEach { (valueName, valueByteBuf) ->
             buffer.writeInt(this.translator.getIntFromString(valueName, out)) // valueName to Int
-            buffer.writeInt(valueByteArray.size)
-            buffer.writeBytes(valueByteArray)
+            buffer.writeInt(valueByteBuf.readableBytes())
+            buffer.writeBytes(valueByteBuf)
         }
         msg.send.clear()
 

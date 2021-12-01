@@ -1,6 +1,6 @@
 package de.moldy.molnet2k.client
 
-import de.moldy.molnet2k.MessageDecoder
+import de.moldy.molnet2k.RequiredMessageDecoder
 import de.moldy.molnet2k.exchange.Message
 import de.moldy.molnet2k.exchange.NetworkInterface
 import de.moldy.molnet2k.exchange.file.FileDownloadProcessor
@@ -28,8 +28,8 @@ open class Client(private var host: String, private var port: Int) : NetworkInte
         this.bootstrap.handler(object : ChannelInitializer<SocketChannel>() {
             override fun initChannel(ch: SocketChannel) {
                 val translator = ClientMessageTranslator()
-                ch.pipeline().addFirst("defaultDecoder", MessageDecoder())
-                ch.pipeline().addLast("decoder", ClientMessageDecoder(translator))
+                ch.pipeline().addFirst("defaultDecoder", RequiredMessageDecoder())
+                ch.pipeline().addLast("decoder", ClientMessageDecoder(translator, messageService))
                 ch.pipeline().addLast("encoder", ClientMessageEncoder(translator))
                 ch.pipeline().addLast("handler", messageHandler)
             }

@@ -13,6 +13,7 @@ abstract class MessageHandler : SimpleChannelInboundHandler<Message>() {
 
     internal val exchangerManager = MessageExchangerManager()
 
+    val methodNoFoundListener = ArrayList<(ctx: ChannelHandlerContext, msg: Message) -> Unit>()
     val noAccessListener =
         ArrayList<(ctx: ChannelHandlerContext, handle: MolNetMethodHandle<*>, channelBits: BitVector?, msg: Message) -> Unit>()
 
@@ -20,7 +21,8 @@ abstract class MessageHandler : SimpleChannelInboundHandler<Message>() {
         val handle = this.exchangerManager.getMethodHandle(msg.trafficID)
 
         if (handle == null) {
-            println("[MESSAGE HANDLER] the <${msg.trafficID}> TrafficID has not a method")
+//            println("[MESSAGE HANDLER] the <${msg.trafficID}> TrafficID has not a method")
+            this.methodNoFoundListener.forEach { it(ctx, msg) }
             return
         }
 
@@ -46,7 +48,6 @@ abstract class MessageHandler : SimpleChannelInboundHandler<Message>() {
 
     override fun exceptionCaught(ctx: ChannelHandlerContext?, cause: Throwable?) {
         cause?.printStackTrace()
-        super.exceptionCaught(ctx, cause)
     }
 
 

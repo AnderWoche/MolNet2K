@@ -2,116 +2,75 @@ package de.moldy.molnet2k.utils
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufAllocator
-import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
 class ByteBufferUtils {
 
     companion object {
-        val byteBufferPool2 = object : Pool<ByteBuffer>(100) {
-            override fun newObject(): ByteBuffer {
-                return ByteBuffer.allocate(2)
-            }
-        }
-        val byteBufferPool4 = object : Pool<ByteBuffer>(100) {
-            override fun newObject(): ByteBuffer {
-                return ByteBuffer.allocate(4)
-            }
-        }
-        val byteBufferPool8 = object : Pool<ByteBuffer>(100) {
-            override fun newObject(): ByteBuffer {
-                return ByteBuffer.allocate(8)
-            }
-        }
-
         val UTF8Charset: Charset = StandardCharsets.UTF_8
 
-        fun writeUTF8String(byteBuf: ByteBuf, s: String) {
-            val stringByteBuffer = ByteBufAllocator.DEFAULT.buffer()
-            stringByteBuffer.writeCharSequence(s, UTF8Charset)
-            byteBuf.writeInt(stringByteBuffer.readableBytes())
-            byteBuf.writeBytes(stringByteBuffer)
-            stringByteBuffer.release()
-        }
+//        fun writeUTF8String(byteBuf: ByteBuf, s: String) {
+//            val stringByteBuffer = ByteBufAllocator.DEFAULT.buffer()
+//            stringByteBuffer.writeCharSequence(s, UTF8Charset)
+//            byteBuf.writeInt(stringByteBuffer.readableBytes())
+//            byteBuf.writeBytes(stringByteBuffer)
+//            stringByteBuffer.release()
+//        }
 
-        fun readUTF8String(byteBuf: ByteBuf): String {
-            val length = byteBuf.readInt()
-            return byteBuf.readCharSequence(length, UTF8Charset) as String
-        }
-
-        fun addStringBeforeMassage(string: String, byteBuf: ByteBuf): ByteBuf {
-            val stringByteBuffer = ByteBufAllocator.DEFAULT.buffer()
-            writeUTF8String(stringByteBuffer, string)
-            stringByteBuffer.writeBytes(byteBuf)
-            byteBuf.clear()
-            byteBuf.writeBytes(stringByteBuffer)
-            stringByteBuffer.release()
+        fun String.toLengthAndStringByteBuf(): ByteBuf {
+            val byteBuf = ByteBufAllocator.DEFAULT.buffer(this.length)
+            byteBuf.writeInt(this.length)
+            byteBuf.writeCharSequence(this, UTF8Charset)
             return byteBuf
         }
 
-        fun Short.bytes(): ByteArray {
-            val buffer = byteBufferPool2.obtain()
-            buffer.rewind()
-            buffer.putShort(this)
-            buffer.rewind()
-            return buffer.array()
+        fun ByteBuf.readLengthAndString(): CharSequence {
+            val readable = this.readInt()
+            return this.readCharSequence(readable, UTF8Charset)
         }
 
-        fun byteToShort(byteArray: ByteArray): Short {
-            val buffer = byteBufferPool8.obtain()
-            buffer.rewind()
-            buffer.put(byteArray)
-            buffer.rewind()
-            return buffer.getShort()
+//        fun readUTF8String(byteBuf: ByteBuf): String {
+//            val length = byteBuf.readInt()
+//            return byteBuf.readCharSequence(length, UTF8Charset) as String
+//        }
+
+//        fun addStringBeforeMassage(string: String, byteBuf: ByteBuf): ByteBuf {
+//            val stringByteBuffer = ByteBufAllocator.DEFAULT.buffer()
+//            stringByteBuffer.writeBytes(string.toByteBuf())
+//            stringByteBuffer.writeBytes(byteBuf)
+//            byteBuf.clear()
+//            byteBuf.writeBytes(stringByteBuffer)
+//            stringByteBuffer.release()
+//            return byteBuf
+//        }
+
+        fun Short.toLengthAndStringByteBuf(): ByteBuf {
+            val buffer = ByteBufAllocator.DEFAULT.buffer(2)
+            buffer.clear()
+            buffer.writeShort(this.toInt())
+            return buffer
         }
 
-        fun Float.bytes(): ByteArray {
-            val buffer = byteBufferPool4.obtain()
-            buffer.rewind()
-            buffer.putFloat(this)
-            buffer.rewind()
-            return buffer.array()
+        fun Float.toLengthAndStringByteBuf(): ByteBuf {
+            val buffer = ByteBufAllocator.DEFAULT.buffer(4)
+            buffer.clear()
+            buffer.writeFloat(this)
+            return buffer
         }
 
-        fun ByteArray.toFloat(): Float {
-            val buffer = byteBufferPool4.obtain()
-            buffer.rewind()
-            buffer.put(this)
-            buffer.rewind()
-            return buffer.getFloat()
+        fun Int.toLengthAndStringByteBuf(): ByteBuf {
+            val buffer = ByteBufAllocator.DEFAULT.buffer(4)
+            buffer.clear()
+            buffer.writeInt(this)
+            return buffer
         }
 
-        fun Int.bytes(): ByteArray {
-            val buffer = byteBufferPool4.obtain()
-            buffer.rewind()
-            buffer.putInt(this)
-            buffer.rewind()
-            return buffer.array()
-        }
-
-        fun byteToInt(byteArray: ByteArray): Int {
-            val buffer = byteBufferPool4.obtain()
-            buffer.rewind()
-            buffer.put(byteArray)
-            buffer.rewind()
-            return buffer.getInt()
-        }
-
-        fun Long.bytes(): ByteArray {
-            val buffer = byteBufferPool8.obtain()
-            buffer.rewind()
-            buffer.putLong(this)
-            buffer.rewind()
-            return buffer.array()
-        }
-
-        fun byteToLong(byteArray: ByteArray): Long {
-            val buffer = byteBufferPool8.obtain()
-            buffer.rewind()
-            buffer.put(byteArray)
-            buffer.rewind()
-            return buffer.getLong()
+        fun Long.toLengthAndStringByteBuf(): ByteBuf {
+            val buffer = ByteBufAllocator.DEFAULT.buffer(8)
+            buffer.clear()
+            buffer.writeLong(this)
+            return buffer
         }
     }
 

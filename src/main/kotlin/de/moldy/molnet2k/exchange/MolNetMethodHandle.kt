@@ -27,7 +27,7 @@ class MolNetMethodHandle<T>(private val any: T, m: Method, val id: String, priva
      * @return true if rights equals, false if not equals
      */
     fun invokeWithRights(rights: BitVector, message: Message): Boolean {
-        return if(this.hasAccess(rights)) {
+        return if (this.hasAccess(rights)) {
             this.invokeIgnoreRights(message)
             true
         } else {
@@ -36,6 +36,10 @@ class MolNetMethodHandle<T>(private val any: T, m: Method, val id: String, priva
     }
 
     fun invokeIgnoreRights(message: Message) {
-        this.methodHandle.invoke(this.any, message)
+        // TODO all method need executed in thread
+        Thread {
+            this.methodHandle.invoke(this.any, message)
+            message.release()
+        }.start()
     }
 }

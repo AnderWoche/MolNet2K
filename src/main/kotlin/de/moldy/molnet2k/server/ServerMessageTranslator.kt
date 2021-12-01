@@ -1,7 +1,8 @@
 package de.moldy.molnet2k.server
 
-import de.moldy.molnet2k.utils.ByteBufferUtils
+import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.toLengthAndStringByteBuf
 import de.moldy.molnet2k.utils.IDFactory
+import de.moldy.molnet2k.utils.writeBytesAndRelease
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.ByteBufAllocator
 
@@ -20,10 +21,12 @@ class ServerMessageTranslator : IDFactory<String>(false) {
             id = super.getOrCreateID(string)
             val buffer = ByteBufAllocator.DEFAULT.buffer()
             buffer.writeInt(0) // trafficID
-            ByteBufferUtils.writeUTF8String(buffer, string) // string
+            buffer.writeBytesAndRelease(string.toLengthAndStringByteBuf())
+//            ByteBufferUtils.writeUTF8String(buffer, string) // string
             buffer.writeInt(id) // id
             out.writeInt(buffer.readableBytes())
             out.writeBytes(buffer)
+            buffer.release()
         }
         return id
     }

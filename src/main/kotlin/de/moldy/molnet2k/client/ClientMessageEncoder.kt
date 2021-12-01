@@ -1,7 +1,8 @@
 package de.moldy.molnet2k.client
 
 import de.moldy.molnet2k.exchange.Message
-import de.moldy.molnet2k.utils.ByteBufferUtils
+import de.moldy.molnet2k.utils.ByteBufferUtils.Companion.toLengthAndStringByteBuf
+import de.moldy.molnet2k.utils.writeBytesAndRelease
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder
@@ -17,20 +18,20 @@ class ClientMessageEncoder(private val translator: ClientMessageTranslator) : Me
             buffer.writeInt(trafficID)
         } else {
             buffer.writeByte(0)
-            ByteBufferUtils.writeUTF8String(buffer, msg.trafficID)
+            buffer.writeBytesAndRelease(msg.trafficID.toLengthAndStringByteBuf())
         }
 
-        msg.send.forEach { (valueName, valueByteArray) ->
+        msg.send.forEach { (valueName, valueByteBuf) ->
             val varName: Int? = this.translator.getValue(valueName)
             if(varName != null) {
                 buffer.writeByte(1)
                 buffer.writeInt(varName)
             } else {
                 buffer.writeByte(0)
-                ByteBufferUtils.writeUTF8String(buffer, valueName)
+                buffer.writeBytesAndRelease(valueName.toLengthAndStringByteBuf())
             }
-            buffer.writeInt(valueByteArray.size)
-            buffer.writeBytes(valueByteArray)
+            buffer.writeInt(valueByteBuf.readableBytes())
+            buffer.writeBytes(valueByteBuf)
         }
         msg.send.clear()
 

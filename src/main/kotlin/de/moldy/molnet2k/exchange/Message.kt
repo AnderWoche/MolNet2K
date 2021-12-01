@@ -1,25 +1,37 @@
 package de.moldy.molnet2k.exchange
 
+import de.moldy.molnet2k.MessageService
 import de.moldy.molnet2k.utils.serializer.ByteObjectSerializer
+import io.netty.buffer.ByteBuf
 import io.netty.channel.Channel
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.reflect.KClass
 
-class Message {
+class Message(private val messageService: MessageService) {
 
     internal var trafficID = ""
 
     internal lateinit var sender: Channel
 
-    internal val received = HashMap<String, ByteArray>()
-    internal val send = HashMap<String, ByteArray>()
+    internal val received = HashMap<String, ByteBuf>()
+    internal val send = HashMap<String, ByteBuf>()
 
-    fun getSender(): Channel {
-        return this.sender
-    }
+    val lock = ReentrantLock()
+    val condition = lock.newCondition()
+
+    var isUsed = false
 
     fun <T : Any> getVar(name: String, type: KClass<T>): T {
-        name.hashCode()
-        val bytes = this.received[name]
+        var bytes = this.received[name]
+        if(bytes == null) {
+            this.lock.lock()
+            println("wait! object: $this")
+            this.condition.await()
+            println("continue!")
+            this.lock.unlock()
+            bytes = this.received[name]
+        }
         requireNotNull(bytes) {"var for name: <$name> doesn't exits"}
         return ByteObjectSerializer.byteObjectSerializer.deSerialize(type, bytes)
     }
@@ -39,4 +51,13 @@ class Message {
         this.send()
     }
 
+    fun release() {
+        this.messageService.releaseMessage(this)
+    }
+
+    fun continueProcess() {
+        this.lock.lock()
+        this.condition.signalAll()
+        this.lock.unlock()
+    }
 }
